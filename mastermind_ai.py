@@ -75,61 +75,78 @@ class Responder :
         exactmatches = Responder.ExactMatches(guesscode,secret)
         nonexactmatches =Responder.NonExactMatches(guesscode,secret)
         return Response(exactmatches,nonexactmatches)
-        
 
-class MasterMindSolver :    
-    __candidates:list
-    
-    def __init__(self,candidates:list):
-         self.__candidates = candidates
-    
-    def ChooseGuess(self)  -> Code :
-        slot = random.randint(0,len(self.__candidates)-1)
-        return self.__candidates[slot]             
-        
-    def IsConsistent(guesscode:Code, response:Response,  code:Code)  -> bool :   
+class Util :    
+     def IsConsistent(guesscode:Code, response:Response,  code:Code)  -> bool :   
         em = Responder.ExactMatches(guesscode,code)
         return response.ExactMatches == em and response.NonExactMatches == (Responder.TotalMatches(guesscode,code) - em)
     
-    
-    def guessScoreKnuth (guess:Code, candidates):        
+        
+class KnuthStrategy :
+    def __guessScoreKnuth (guess:Code, candidates):        
         maxlen = None     
         
         for resp in allresponses:                     
-            newcandidates = [candidate for candidate in candidates if MasterMindSolver.IsConsistent(guess, resp,candidate)]          
+            newcandidates = [candidate for candidate in candidates if Util.IsConsistent(guess, resp,candidate)]          
             if( maxlen == None or  maxlen < len(newcandidates)):
                 maxlen = len(newcandidates)               
                
         return maxlen
     
-    def BestKnuth(candidates,combinations) :
+    def __BestKnuth(candidates,combinations) :
         minlen = None
         best = None
         for guess  in combinations:
-            score = MasterMindSolver.guessScoreKnuth(guess,candidates)
+            score = KnuthStrategy.__guessScoreKnuth(guess,candidates)
             if(minlen == None or minlen > score):
                 minlen = score
                 best = guess
             
         return (best, minlen)   
     
+    def ChooseGuess(candidates,combinations) -> Code :
+        guessscore = KnuthStrategy.__BestKnuth(candidates ,candidates);
+        guess = guessscore[0]
+        guessscore_alt = KnuthStrategy.__BestKnuth(candidates ,combinations);
+        if( guessscore_alt[1] <  guessscore[1]):
+            guess = guessscore_alt[0]
+
+        return guess
+    
+class RamdomStrategy :
+    def ChooseGuess(candidates , combinations) -> Code :
+        slot = random.randint(0,len(candidates)-1)
+        return candidates[slot]        
+        
+class RamdomStrategy2 :
+    def ChooseGuess(candidates , combinations) -> Code :
+        
+        for guess  in combinations:           
+            slot = random.randint(0,len(candidates)-1)
+              
+        return candidates[slot]     
+    
+class MasterMindSolver :    
+    __candidates:list
+    __Strategy = None
+    
+    def __init__(self,candidates:list,Strategy):
+         self.__candidates = candidates
+         self.__Strategy = Strategy
+                  
+        
     def Play(self,secret:Code) -> Dict[Code, Response]:
         guesshistory:Dict[str, Response] = {}
         while(True):
-            #guess = self.ChooseGuess();           
-            guessscore = MasterMindSolver.BestKnuth(self.__candidates ,self.__candidates);
-            guess = guessscore[0]
-            guessscore_alt = MasterMindSolver.BestKnuth(self.__candidates ,allcombinations);
-            if( guessscore_alt[1] <  guessscore[1]):
-                guess = guessscore_alt[0]
-            
+            #guess = self.ChooseGuess();     
+            guess = self.__Strategy.ChooseGuess(self.__candidates ,allcombinations)                       
             
             resp:Response =  Responder.GetResponse(guess,secret)
             guesshistory[str(guess)] = resp
             if(resp  == Response(Slots,0)) :
                 break;
         
-            newcandidates = [candidate for candidate in self.__candidates if  MasterMindSolver.IsConsistent(guess, resp,candidate)]         
+            newcandidates = [candidate for candidate in self.__candidates if  Util.IsConsistent(guess, resp,candidate)]         
             #print("candidate len after filtering is ",type(newcandidates))
             self.__candidates = newcandidates
             
@@ -144,10 +161,10 @@ class MasterMindSolverSimulator :
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
-                 solver=MasterMindSolver(allcodes)
-                 print(code)
+                 solver=MasterMindSolver(allcodes,RamdomStrategy)
+                 #print(code)
                  solution = solver.Play(code);
-                 print(solution)
+                 #print(solution)
                  count = count+1
                  thesum = thesum + len(solution);
                  if( themax == None or len(solution) > themax   ) :
@@ -155,14 +172,9 @@ class MasterMindSolverSimulator :
         
         return  (themax, thesum/count)  
 
-start = time.time()        
-solver = MasterMindSolver(allcombinations)                                         
-S=solver.Play([Color.GREEN, Color.RED, Color.RED, Color.BLUE])
-MasterMindSolver.BestKnuth(allcombinations,  allcombinations)
-end = time.time()
-print(end-start)
-print(S)
-print(MasterMindSolverSimulator.Simulate(1))
+
+
+print(MasterMindSolverSimulator.Simulate(10))
 
 
 
