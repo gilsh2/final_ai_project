@@ -92,8 +92,7 @@ class MasterMindSolver :
         return response.ExactMatches == em and response.NonExactMatches == (Responder.TotalMatches(guesscode,code) - em)
     
     
-    def guessScoreKnuth (guess:Code, candidates):
-        
+    def guessScoreKnuth (guess:Code, candidates):        
         maxlen = None     
         
         for resp in allresponses:                     
@@ -112,13 +111,19 @@ class MasterMindSolver :
                 minlen = score
                 best = guess
             
-        return best    
+        return (best, minlen)   
     
     def Play(self,secret:Code) -> Dict[Code, Response]:
         guesshistory:Dict[str, Response] = {}
         while(True):
-            #guess = self.ChooseGuess();
-            guess = MasterMindSolver.BestKnuth(self.__candidates ,self.__candidates);
+            #guess = self.ChooseGuess();           
+            guessscore = MasterMindSolver.BestKnuth(self.__candidates ,self.__candidates);
+            guess = guessscore[0]
+            guessscore_alt = MasterMindSolver.BestKnuth(self.__candidates ,allcombinations);
+            if( guessscore_alt[1] <  guessscore[1]):
+                guess = guessscore_alt[0]
+            
+            
             resp:Response =  Responder.GetResponse(guess,secret)
             guesshistory[str(guess)] = resp
             if(resp  == Response(Slots,0)) :
@@ -157,7 +162,7 @@ MasterMindSolver.BestKnuth(allcombinations,  allcombinations)
 end = time.time()
 print(end-start)
 print(S)
-
+print(MasterMindSolverSimulator.Simulate(1))
 
 
 
