@@ -36,6 +36,8 @@ class Response(NamedTuple):
     ExactMatches: int
     NonExactMatches: int
 
+      
+
 def Getresponses():
     responses = []
     for i in range(Slots+1) :
@@ -48,6 +50,33 @@ def Getresponses():
 
 allcombinations = GenAllCombinations()
 allresponses = Getresponses()
+
+
+class StrategyNode(NamedTuple):
+    guess: Code
+    IsWinning : bool
+    IsLossing : bool
+    next_guess: List[StrategyNode]
+
+class StrategyTreeBuilder():
+    def Build(Strategy,candidates,combinations) -> StrategyNode:
+        
+        empty = [None for i in range(len(allresponses))]
+        if(len(candidates) == 0):
+            return StrategyNode(None,False,True,None)
+        
+        guess = Strategy.ChooseGuess(candidates,combinations)
+        Node = StrategyNode(guess,False,False,empty)
+        for i in range(len(allresponses)) :           
+            if( allresponses[i] == Response(Slots,0)):
+                Node.next_guess[i] = StrategyNode(guess,True,False,empty)
+            else :   
+                candidates_for_resp =  [candidate for candidate in candidates if  Util.IsConsistent(guess, allresponses[i],candidate)]  
+                Node.next_guess[i] = StrategyTreeBuilder.Build(Strategy,candidates_for_resp,combinations)
+                
+                
+        return   Node
+                
 
 class Responder :        
     
