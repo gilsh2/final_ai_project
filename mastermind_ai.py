@@ -56,7 +56,7 @@ class StrategyNode(NamedTuple):
     guess: Code
     IsWinning : bool
     IsLossing : bool
-    next_guess: List[StrategyNode]
+    next_guess: List[None]
 
 class StrategyTreeBuilder():
     def Build(Strategy,candidates,combinations) -> StrategyNode:
@@ -110,6 +110,9 @@ class Util :
         em = Responder.ExactMatches(guesscode,code)
         return response.ExactMatches == em and response.NonExactMatches == (Responder.TotalMatches(guesscode,code) - em)
     
+    
+         
+    
         
 class KnuthStrategy :
     def __guessScoreKnuth (guess:Code, candidates):        
@@ -147,13 +150,7 @@ class RamdomStrategy :
         slot = random.randint(0,len(candidates)-1)
         return candidates[slot]        
         
-class RamdomStrategy2 :
-    def ChooseGuess(candidates , combinations) -> Code :
-        
-        for guess  in combinations:           
-            slot = random.randint(0,len(candidates)-1)
-              
-        return candidates[slot]     
+ 
     
 class MasterMindSolver :    
     __candidates:list
@@ -181,16 +178,43 @@ class MasterMindSolver :
             
         return guesshistory
 
+class MasterMindSolver2 :    
+    __candidates:list
+    __Strategy = None
+    
+    def __init__(self,candidates:list,Strategytree):
+         self.__candidates = candidates
+         self.__Strategytree = Strategytree
+                  
+        
+    def Play(self,secret:Code) -> Dict[Code, Response]:
+        guesshistory:Dict[str, Response] = {}
+        Node = self.__Strategytree
+        while(True):
+            #guess = self.ChooseGuess();     
+            if(Node.IsWinning ):
+                break;
+                
+            if(Node.IsLossing):
+                raise ValueError('We should not be lossing');     
+                       
+            guess = Node.guess            
+            resp:Response =  Responder.GetResponse(guess,secret)
+            guesshistory[str(guess)] = resp             
+            Node = Node.next_guess[allresponses.index(resp)]       
+                       
+        return guesshistory
+
 
 class MasterMindSolverSimulator :                     
-    def Simulate(iterations:int) :     
+    def Simulate(Strategytree,iterations:int) :     
         themax:int = None 
         thesum:int = 0 
         count=0
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
-                 solver=MasterMindSolver(allcodes,RamdomStrategy)
+                 solver=MasterMindSolver2(allcodes,Strategytree)
                  #print(code)
                  solution = solver.Play(code);
                  #print(solution)
@@ -202,8 +226,12 @@ class MasterMindSolverSimulator :
         return  (themax, thesum/count)  
 
 
-
-print(MasterMindSolverSimulator.Simulate(10))
+#KnuthTree = StrategyTreeBuilder.Build(RamdomStrategy) 
+Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations) 
+print("finish building the tree")
+solver=MasterMindSolver2(allcombinations,Tree)
+path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
+print(MasterMindSolverSimulator.Simulate(Tree,10))
 
 
 
