@@ -57,23 +57,25 @@ class StrategyNode(NamedTuple):
     IsWinning : bool
     IsLossing : bool
     next_guess: List[None]
+    next_guess_lens: List[int]
 
 class StrategyTreeBuilder():
     def Build(Strategy,candidates,combinations) -> StrategyNode:
         
         empty = [None for i in range(len(allresponses))]
         if(len(candidates) == 0):
-            return StrategyNode(None,False,True,None)
+            return StrategyNode(None,False,True,None,None)
         
         guess = Strategy.ChooseGuess(candidates,combinations)
-        Node = StrategyNode(guess,False,False,empty)
+        Node = StrategyNode(guess,False,False,empty,empty)
         for i in range(len(allresponses)) :           
             if( allresponses[i] == Response(Slots,0)):
-                Node.next_guess[i] = StrategyNode(guess,True,False,empty)
+                Node.next_guess[i] = StrategyNode(guess,True,False,empty,empty)
             else :   
                 candidates_for_resp =  [candidate for candidate in candidates if  Util.IsConsistent(guess, allresponses[i],candidate)]  
+                Node.next_guess_lens[i] = len(candidates_for_resp)
                 Node.next_guess[i] = StrategyTreeBuilder.Build(Strategy,candidates_for_resp,combinations)
-                
+               
                 
         return   Node
                 
@@ -151,34 +153,9 @@ class RamdomStrategy :
         return candidates[slot]        
         
  
-    
-class MasterMindSolver :    
-    __candidates:list
-    __Strategy = None
-    
-    def __init__(self,candidates:list,Strategy):
-         self.__candidates = candidates
-         self.__Strategy = Strategy
-                  
-        
-    def Play(self,secret:Code) -> Dict[Code, Response]:
-        guesshistory:Dict[str, Response] = {}
-        while(True):
-            #guess = self.ChooseGuess();     
-            guess = self.__Strategy.ChooseGuess(self.__candidates ,allcombinations)                       
-            
-            resp:Response =  Responder.GetResponse(guess,secret)
-            guesshistory[str(guess)] = resp
-            if(resp  == Response(Slots,0)) :
-                break;
-        
-            newcandidates = [candidate for candidate in self.__candidates if  Util.IsConsistent(guess, resp,candidate)]         
-            #print("candidate len after filtering is ",type(newcandidates))
-            self.__candidates = newcandidates
-            
-        return guesshistory
 
-class MasterMindSolver2 :    
+
+class MasterMindSolver :    
     __candidates:list
     __Strategy = None
     
@@ -214,7 +191,7 @@ class MasterMindSolverSimulator :
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
-                 solver=MasterMindSolver2(allcodes,Strategytree)
+                 solver=MasterMindSolver(allcodes,Strategytree)
                  #print(code)
                  solution = solver.Play(code);
                  #print(solution)
@@ -227,11 +204,15 @@ class MasterMindSolverSimulator :
 
 
 #KnuthTree = StrategyTreeBuilder.Build(RamdomStrategy) 
-Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations) 
+Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
 print("finish building the tree")
-solver=MasterMindSolver2(allcombinations,Tree)
+solver=MasterMindSolver(allcombinations,Tree)
 path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
-print(MasterMindSolverSimulator.Simulate(Tree,10))
+for  i in range(1,100):
+    random.shuffle(allcombinations)
+    Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations) 
+    print(MasterMindSolverSimulator.Simulate(Tree,10))
+    
 
 
 
