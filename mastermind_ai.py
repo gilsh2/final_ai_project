@@ -51,8 +51,6 @@ def Getresponses():
 allcombinations = GenAllCombinations()
 allresponses = Getresponses()
 
-
-
     
 class StrategyNode :
     guess: Code
@@ -75,11 +73,12 @@ class StrategyTreeBuilder():
         
         if(len(candidates) == 0):
             return StrategyNode(None,False,True)
-        
+        '''
         if(len(candidates) == len(combinations)):
             guess = [Color.RED,Color.RED,Color.GREEN,Color.GREEN]
         else :
-            guess = Strategy.ChooseGuess(candidates,combinations)
+        '''
+        guess = Strategy.ChooseGuess(candidates,combinations)
         Node = StrategyNode(guess,False,False)
         for i in range(len(allresponses)) :           
             if( allresponses[i] == Response(Slots,0)):
@@ -185,6 +184,8 @@ class MasterMindSolver :
     def GetTraining(self) :
         return self.__training
     
+    
+    
     def Play(self,secret:Code) -> Dict[Code, Response]:
         guesshistory:Dict[str, Response] = {}
         Node = self.__Strategytree
@@ -212,27 +213,37 @@ class MasterMindSolver :
         return guesshistory
 
 
-class MasterMindSolverSimulator :                     
-    def Simulate(Strategytree,iterations:int) :     
+class MasterMindSolverSimulator :   
+    def PersistTraining(trainings,file) :
+            for example in trainings :
+                 training = str(example[1]) + "," + ','.join(map(str, example[0]))
+                 file.write(training+"\n")       
+                 
+    def Simulate(Strategytree,iterations:int,filename:str) :     
         themax:int = None 
         thesum:int = 0 
         count=0
+        file = open(filename, "a")
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
                  solver=MasterMindSolver(allcodes,Strategytree)
                  #print(code)
                  solution = solver.Play(code);
-                 print(solver.GetTraining())
-                
+                 trainings = solver.GetTraining()
+                 MasterMindSolverSimulator.PersistTraining(trainings,file)
+                 
                  #print(solution)
                  count = count+1
                  thesum = thesum + len(solution);
                  if( themax == None or len(solution) > themax   ) :
-                     themax = len(solution)                 
-        
+                     themax = len(solution)      
+                     
+        file.close()
         return  (themax, thesum/count)  
 
+    
+            
 
 #KnuthTree = StrategyTreeBuilder.Build(RamdomStrategy) 
 Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
@@ -242,7 +253,7 @@ path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
 for  i in range(1,100):
     random.shuffle(allcombinations)
     Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
-    print(MasterMindSolverSimulator.Simulate(Tree,10))
+    print(MasterMindSolverSimulator.Simulate(Tree,1,"tr7.txt"))
     
 
 
