@@ -8,6 +8,12 @@ from enum import Enum
 from typing import NamedTuple, Dict, Tuple, Optional, Sequence, List,Set,FrozenSet
 import random
 import time
+import numpy 
+import matplotlib.pyplot as plt
+from numpy.linalg import inv
+import torch
+import csv
+import json
 
 class Color(Enum):
     RED = 0
@@ -72,7 +78,7 @@ class StrategyTreeBuilder():
     def Build(Strategy,candidates,combinations) -> StrategyNode:        
         
         if(len(candidates) == 0):
-            return StrategyNode(None,False,True)
+           return StrategyNode(None,False,True)
         '''
         if(len(candidates) == len(combinations)):
             guess = [Color.RED,Color.RED,Color.GREEN,Color.GREEN]
@@ -170,6 +176,77 @@ class RamdomStrategy :
         return candidates[slot]        
          
 
+class NNStrategy:
+     def Train(self, filename:str) :
+         with open(filename, 'r') as infile:
+            csvfile = csv.reader(infile)            
+            data = []
+            for line in csvfile:
+                data.append([float(s) for s in line])
+            data = numpy.array(data)                
+            validation_split = 0.3 # Take 30% for validation
+            samples = data.shape[0] # Get the number of rows
+            validation_samples = validation_split * samples  
+            Y = data[int(validation_samples):,0]
+            X = data[int(validation_samples):,1:]
+            Y_validation = data[:int(validation_samples),0]
+            X_validation = data[:int(validation_samples),1:] 
+
+            Xt = torch.Tensor(X)
+            # To make Yt match the shape of Yhat, we'll need it to be a slightly different shape
+            Yt = torch.Tensor(Y.reshape((len(Y), 1)))
+            
+            # Convert our numpy arrays to torch tensors
+            Xt_validation = torch.Tensor(X_validation)
+            # To make Yt match the shape of Yhat, we'll need it to be a slightly different shape
+            Yt_validation = torch.Tensor(Y_validation.reshape((len(Y_validation), 1)))                              
+
+            input_dimension = 14
+            
+            hidden_dimension = 20
+            
+            # to one output variable.
+            output_dimension = 1 
+            
+            model = torch.nn.Sequential(
+            torch.nn.Linear(input_dimension, hidden_dimension),
+             # A ReLU layer turns inputs into activations nonlinearly   
+            torch.nn.ReLU(), 
+            torch.nn.Linear(hidden_dimension, output_dimension)    
+            )                       
+
+            learning_rate = 0.00000001
+            
+            loss_fn = torch.nn.MSELoss(size_average=False)
+            for t in range(200000):
+                # Make a prediction
+                Yhatt = model(Xt)
+                
+                   
+                # Calculate loss (the error of the residual)
+                loss = loss_fn(Yhatt, Yt)
+                
+                if ((t % 10) == 0):     
+                     print(loss.item())
+                     
+                # Clear out the "gradient", i.e. the old update amounts
+                model.zero_grad()
+                # Fill out the new update amounts
+                loss.backward()
+                # Go through and actually update model weights
+                with torch.no_grad():
+                    for param in model.parameters():
+                        param -= learning_rate * param.grad
+            
+             
+     def ChooseGuess(self,candidates , combinations) -> Code :
+        epsilon = 0.01
+        if(random.random() < epsilon):
+            return combinations[ random.randint(0,len(combinations)-1)]
+        
+        slot = random.randint(0,len(candidates)-1)
+        return candidates[slot]        
+    
 
 class MasterMindSolver :    
     __candidates:list
@@ -201,7 +278,7 @@ class MasterMindSolver :
              
             Move = Move + 1    
             guess = Node.guess          
-            self.__training.append(  (Node.next_guess_lens,Move))
+            self.__training.append(  (Node.next_guess_lens,Move))           
             resp:Response =  Responder.GetResponse(guess,secret)
             guesshistory[str(guess)] = resp             
             Node = Node.next_guess[allresponses.index(resp)]       
@@ -223,7 +300,10 @@ class MasterMindSolverSimulator :
         themax:int = None 
         thesum:int = 0 
         count=0
-        file = open(filename, "a")
+        file  = None
+        if(filename != None) :
+            file = open(filename, "a")
+            
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
@@ -231,30 +311,37 @@ class MasterMindSolverSimulator :
                  #print(code)
                  solution = solver.Play(code);
                  trainings = solver.GetTraining()
-                 MasterMindSolverSimulator.PersistTraining(trainings,file)
+                 if(file != None):                       
+                     #file.write("start game code = " + str(code) +"\n")
+                     MasterMindSolverSimulator.PersistTraining(trainings,file)
+                 #print(solution)
                  
                  #print(solution)
                  count = count+1
                  thesum = thesum + len(solution);
                  if( themax == None or len(solution) > themax   ) :
                      themax = len(solution)      
-                     
-        file.close()
+        
+        if(file != None):                
+            file.close()
+            
         return  (themax, thesum/count)  
 
     
             
 
 #KnuthTree = StrategyTreeBuilder.Build(RamdomStrategy) 
-Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
-print("finish building the tree")
-solver=MasterMindSolver(allcombinations,Tree)
-path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
-for  i in range(1,100):
+#Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
+#print("finish building the tree")
+#solver=MasterMindSolver(allcombinations,Tree)
+#path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
+#Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)    
+nn = NNStrategy()    
+for  i in range(1,200):
     random.shuffle(allcombinations)
-    Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
-    print(MasterMindSolverSimulator.Simulate(Tree,1,"tr7.txt"))
-    
+    Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
+    print(MasterMindSolverSimulator.Simulate(Tree,1,None))
+
 
 
 
