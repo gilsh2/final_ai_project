@@ -183,7 +183,7 @@ class NNStrategy:
          
         input_dimension = 14
         
-        hidden_dimension = 50
+        hidden_dimension = 20
         
         # to one output variable.
         output_dimension = 1 
@@ -417,7 +417,7 @@ while(True):
         if(minsteps == None or minsteps > stat[0]):
             minsteps =  stat[0]
             
-        if(avgsteps == None or minsteps > stat[1]):
+        if(avgsteps == None or avgsteps > stat[1]):
             avgsteps =  stat[1]    
         
         print("progress so far ",(minsteps,avgsteps))
