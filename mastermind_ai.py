@@ -168,7 +168,7 @@ class KnuthStrategy :
     
 class RamdomStrategy :
     def ChooseGuess(candidates , combinations) -> Code :
-        epsilon = 0.01
+        epsilon = 0.0000000001
         if(random.random() < epsilon):
             return combinations[ random.randint(0,len(combinations)-1)]
         
@@ -179,15 +179,36 @@ class RamdomStrategy :
 class NNStrategy:
      TheModel:torch.nn.modules.container.Sequential
      
-     def guessScore (self,guess:Code, candidates):        
-        features = [int] * (len(allresponses) -1)  
+     def __init__(self):
+         
+        input_dimension = 14
         
-        for i  in range(len(allresponses)):    
+        hidden_dimension = 50
+        
+        # to one output variable.
+        output_dimension = 1 
+        
+        self.TheModel = torch.nn.Sequential(
+        torch.nn.Linear(input_dimension, hidden_dimension),
+         # A ReLU layer turns inputs into activations nonlinearly   
+        torch.nn.Sigmoid(), 
+        torch.nn.Linear(hidden_dimension, output_dimension)            
+        )                       
+             
+     def Getfeature (guess:Code, candidates):
+         features = [int] * (len(allresponses) -1)  
+        
+         for i  in range(len(allresponses)):    
             if(allresponses[i] ==  Response(Slots,0)) :
                 continue
             
             newcandidates = [candidate for candidate in candidates if Util.IsConsistent(guess, allresponses[i],candidate)] 
-            features[i] = len(newcandidates)          
+            features[i] = len(newcandidates)      
+         
+         return features
+    
+     def guessScore (self,guess:Code, candidates):        
+        features = NNStrategy.Getfeature(guess,candidates)      
                                   
         features = torch.Tensor(features)
         score = float(self.TheModel(features).detach())
@@ -205,8 +226,9 @@ class NNStrategy:
         return (best, minlen)       
     
      def ChooseGuess(self,candidates,combinations) -> Code:
-         guess = self.BestNNStrategy(candidates,combinations)
-         return guess[0]
+               
+        guess = self.BestNNStrategy(candidates,candidates)
+        return guess[0]
     
     
      def Train(self, filename:str) :
@@ -215,6 +237,8 @@ class NNStrategy:
             data = []
             for line in csvfile:
                 data.append([float(s) for s in line])
+            
+            random.shuffle(data)
             data = numpy.array(data)                
             validation_split = 0.3 # Take 30% for validation
             samples = data.shape[0] # Get the number of rows
@@ -223,6 +247,8 @@ class NNStrategy:
             X = data[int(validation_samples):,1:]
             Y_validation = data[:int(validation_samples),0]
             X_validation = data[:int(validation_samples),1:] 
+            
+            print("length of validation set is ",len(X_validation))
 
             Xt = torch.Tensor(X)
             # To make Yt match the shape of Yhat, we'll need it to be a slightly different shape
@@ -233,26 +259,14 @@ class NNStrategy:
             # To make Yt match the shape of Yhat, we'll need it to be a slightly different shape
             Yt_validation = torch.Tensor(Y_validation.reshape((len(Y_validation), 1)))                              
 
-            input_dimension = 14
+          
             
-            hidden_dimension = 50
-            
-            # to one output variable.
-            output_dimension = 1 
-            
-            model = torch.nn.Sequential(
-            torch.nn.Linear(input_dimension, hidden_dimension),
-             # A ReLU layer turns inputs into activations nonlinearly   
-            torch.nn.Sigmoid(), 
-            torch.nn.Linear(hidden_dimension, output_dimension)    
-            )                       
-            print(type(model))
             learning_rate = 0.0000001
             
             loss_fn = torch.nn.MSELoss(size_average=False)
-            for t in range(100):
+            for t in range(500):
                 # Make a prediction
-                Yhatt = model(Xt)
+                Yhatt = self.TheModel(Xt)
                 
                    
                 # Calculate loss (the error of the residual)
@@ -262,23 +276,23 @@ class NNStrategy:
                      print(loss.item())
                      
                 # Clear out the "gradient", i.e. the old update amounts
-                model.zero_grad()
+                self.TheModel.zero_grad()
                 # Fill out the new update amounts
                 loss.backward()
                 # Go through and actually update model weights
                 with torch.no_grad():
-                    for param in model.parameters():
+                    for param in self.TheModel.parameters():
                         param -= learning_rate * param.grad
             
          
-            self.TheModel = model
+            
             plt.clf()
             plt.xlabel("Y")
             plt.ylabel("residual")
-            res = Yt_validation-model(Xt_validation)
+            res = Yt_validation-self.TheModel(Xt_validation)
             plt.plot(Yt_validation.cpu().detach().numpy(),res.cpu().detach().numpy(),'ro')
             plt.show()
-            print(loss_fn(Yt_validation,model(Xt_validation)))                 
+            print(loss_fn(Yt_validation,self.TheModel(Xt_validation)))                 
                     
     
 
@@ -297,7 +311,7 @@ class MasterMindSolver :
     
     
     
-    def Play(self,secret:Code) -> Dict[Code, Response]:
+    def Play(self,secret:Code,file=None) -> Dict[Code, Response]:
         guesshistory:Dict[str, Response] = {}
         Node = self.__Strategytree
         self.__training = []
@@ -311,10 +325,23 @@ class MasterMindSolver :
                 raise ValueError('We should not be lossing');     
              
             Move = Move + 1    
-            guess = Node.guess          
+            guess = Node.guess    
+            #if(file != None):
+            #    file.write("guess = " + str(guess) +"\n")
+                
+            #print("guess = ",guess,"secret =",secret)
+            #print("guess[0] = ",guess[0])
+            #print("secret[0] = ",secret[0])                          
+          
             self.__training.append(  (Node.next_guess_lens,Move))           
             resp:Response =  Responder.GetResponse(guess,secret)
-            guesshistory[str(guess)] = resp             
+            #print("resp = ",resp)
+            guesshistory[str(guess)] = resp    
+           
+            
+            if(resp == Response(Slots,0)):
+                break;
+                
             Node = Node.next_guess[allresponses.index(resp)]       
         
         for i in range(len(self.__training) ):
@@ -338,16 +365,19 @@ class MasterMindSolverSimulator :
         if(filename != None) :
             file = open(filename, "a")
             
+        
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
                  solver=MasterMindSolver(allcodes,Strategytree)
-                 #print(code)
-                 solution = solver.Play(code);
+                 #print("code=",code)
+                 
+                 #if(file != None):                       
+                 #    file.write("start game code = " + str(code) +"\n")
+                 solution = solver.Play(code,file);
+                 
                  trainings = solver.GetTraining()
-                 if(file != None):                       
-                     #file.write("start game code = " + str(code) +"\n")
-                     MasterMindSolverSimulator.PersistTraining(trainings,file)
+                 MasterMindSolverSimulator.PersistTraining(trainings,file)
                  #print(solution)
                  
                  #print(solution)
@@ -369,17 +399,31 @@ class MasterMindSolverSimulator :
 #print("finish building the tree")
 #solver=MasterMindSolver(allcombinations,Tree)
 #path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
-#Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)    
-
-nn = NNStrategy()    
-nn.Train("tr1.txt")
-Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
-'''
-for  i in range(1,200):
-    random.shuffle(allcombinations)
+#Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
+minsteps = None
+avgsteps = None        
+while(True):
+    nn = NNStrategy()    
+    nn.Train("tr7.txt")
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
-    print(MasterMindSolverSimulator.Simulate(Tree,1,None))
-'''
+    
+    
+    for  i in range(1,2):
+        random.shuffle(allcombinations)
+        #Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
+        #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
+        stat= MasterMindSolverSimulator.Simulate(Tree,1,"tr7.txt")
+        print (stat)
+        if(minsteps == None or minsteps > stat[0]):
+            minsteps =  stat[0]
+            
+        if(avgsteps == None or minsteps > stat[1]):
+            avgsteps =  stat[1]    
+        
+        print("progress so far ",(minsteps,avgsteps))
+    #solver=MasterMindSolver(allcombinations,Tree)
+    #solver.Play([Color.RED,Color.RED,Color.RED,Color.RED])
+
 
 
 
