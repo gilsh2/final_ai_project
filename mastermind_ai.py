@@ -14,6 +14,7 @@ from numpy.linalg import inv
 import torch
 import csv
 import json
+from numpy import genfromtxt
 
 class Color(Enum):
     RED = 0
@@ -183,7 +184,7 @@ class NNStrategy:
          
         input_dimension = 14
         
-        hidden_dimension = 20
+        hidden_dimension = 50
         
         # to one output variable.
         output_dimension = 1 
@@ -217,7 +218,7 @@ class NNStrategy:
      def BestNNStrategy(self,candidates,combinations) :
         minlen = None
         best = None
-        for guess  in combinations:
+        for guess  in candidates:
             score = self.guessScore(guess,candidates)
             if(minlen == None or minlen > score):
                 minlen = score
@@ -232,14 +233,14 @@ class NNStrategy:
     
     
      def Train(self, filename:str) :
-         with open(filename, 'r') as infile:
-            csvfile = csv.reader(infile)            
-            data = []
-            for line in csvfile:
-                data.append([float(s) for s in line])
+            data = genfromtxt(filename, delimiter=',')
             
-            random.shuffle(data)
-            data = numpy.array(data)                
+           
+            #print(data)
+            #random.shuffle(data)
+            #print(data.shape) 
+            data = numpy.array(data)    
+            print(data.shape)            
             validation_split = 0.3 # Take 30% for validation
             samples = data.shape[0] # Get the number of rows
             validation_samples = validation_split * samples  
@@ -264,7 +265,7 @@ class NNStrategy:
             learning_rate = 0.0000001
             
             loss_fn = torch.nn.MSELoss(size_average=False)
-            for t in range(500):
+            for t in range(100):
                 # Make a prediction
                 Yhatt = self.TheModel(Xt)
                 
@@ -273,8 +274,11 @@ class NNStrategy:
                 loss = loss_fn(Yhatt, Yt)
                 
                 if ((t % 10) == 0):     
-                     print(loss.item())
-                     
+                     print(loss.item()/len(Yt))
+                
+                if(loss.item()/len(Yt) < 0.65):
+                    break
+                
                 # Clear out the "gradient", i.e. the old update amounts
                 self.TheModel.zero_grad()
                 # Fill out the new update amounts
@@ -290,8 +294,8 @@ class NNStrategy:
             plt.xlabel("Y")
             plt.ylabel("residual")
             res = Yt_validation-self.TheModel(Xt_validation)
-            plt.plot(Yt_validation.cpu().detach().numpy(),res.cpu().detach().numpy(),'ro')
-            plt.show()
+            #plt.plot(Yt_validation.cpu().detach().numpy(),res.cpu().detach().numpy(),'ro')
+            #plt.show()
             print(loss_fn(Yt_validation,self.TheModel(Xt_validation)))                 
                     
     
@@ -404,7 +408,7 @@ minsteps = None
 avgsteps = None        
 while(True):
     nn = NNStrategy()    
-    nn.Train("tr7.txt")
+    nn.Train("tr0.txt")
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
     
     
@@ -412,7 +416,7 @@ while(True):
         random.shuffle(allcombinations)
         #Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
         #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
-        stat= MasterMindSolverSimulator.Simulate(Tree,1,"tr7.txt")
+        stat= MasterMindSolverSimulator.Simulate(Tree,1,"tr0.txt")
         print (stat)
         if(minsteps == None or minsteps > stat[0]):
             minsteps =  stat[0]
