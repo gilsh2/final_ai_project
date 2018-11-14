@@ -80,14 +80,7 @@ class StrategyTreeBuilder():
         
         if(len(candidates) == 0):
            return StrategyNode(None,False,True)
-       
-        #if(level == 5):
-        #    print("level=",level ,"candidates=",candidates,"pguess",pguess,"pcandidates",pcandidates,"\n\n")
-        '''
-        if(len(candidates) == len(combinations)):
-            guess = [Color.RED,Color.RED,Color.GREEN,Color.GREEN]
-        else :
-        '''
+     
         guess = Strategy.ChooseGuess(candidates,combinations)
         Node = StrategyNode(guess,False,False)
         for i in range(len(allresponses)) :           
@@ -102,40 +95,25 @@ class StrategyTreeBuilder():
         return   Node
                 
 
-class Responder :        
+class Responder : 
     
-    def ExactMatches(guesscode:Code,secret:Code)  -> int :
-        ret:int = 0
-        for i in range(Slots):
-            if (guesscode[i] == secret[i]):
-                ret = ret +1
-        
-        return ret        
-    
-       
-       
-    
-    def NonExactMatches(guesscode:Code,secret:Code)  -> int :     
-        found = []
-        for i in range(Slots):            
-            if ( guesscode[i]   in secret):
-                found.append(guesscode[i])
-                
-        return len(set(found)) -  Responder.ExactMatches(guesscode,secret)
-    
+    def GetExactMatches(secret, guess):
+        return len([speg for speg, gpeg in zip(secret, guess) if speg == gpeg])
      
-    def GetResponse(secret, guess):
-        first = len([speg for speg, gpeg in zip(secret, guess) if speg == gpeg])
-        return first, sum([min(secret.count(j), guess.count(j)) for j in Color]) - first    
-    
         
+    def GetResponse(secret, guess):
+        first = Responder.GetExactMatches(secret, guess)
+        return first, sum([min(secret.count(j), guess.count(j)) for j in Color]) - first    
+            
   
 class Util :    
      def IsConsistent(guesscode:Code, response:Response,  code:Code)  -> bool :   
-         return Responder.GetResponse(guesscode,code) == response
-    
-    
+         if(response.ExactMatches != Responder.GetExactMatches(code, guesscode)):
+             return False;
          
+         return Responder.GetResponse(code,guesscode) == response
+    
+            
     
         
 class KnuthStrategy :
@@ -415,16 +393,16 @@ class MasterMindSolverSimulator :
 minsteps = None
 avgsteps = None        
 while(True):
-    #nn = NNStrategy()    
-    #nn.Train("tr4.txt")
-    Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations) 
+    nn = NNStrategy()    
+    nn.Train("tr7.txt")
+    #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations) 
     
     
     for  i in range(1,2):
         random.shuffle(allcombinations)
-        #Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
+        Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
         #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
-        stat= MasterMindSolverSimulator.Simulate(Tree,1,"tr5.txt")
+        stat= MasterMindSolverSimulator.Simulate(Tree,1,"tr7.txt")
         print (stat)
         if(minsteps == None or minsteps > stat[0]):
             minsteps =  stat[0]
