@@ -388,29 +388,31 @@ bestmin = None
 bestavg = None  
   
 nn = NNStrategy()    
-fname = "tr0.txt";
-nn.Train(fname)  
+nn.TheModel = torch.load( "bestavg.model")
+nn.TheModel.eval()
+fname = "tr.txt"
 count = 0
-while(True):
-   
+while(True):   
     #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
-   
-    nn.Train(fname)  
+       
     random.shuffle(allcombinations)
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
     #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
     count = count +1
-    fname = "trcurrent.txt"
+  
     stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
     print (stat)
     if(minsteps == None or minsteps > stat[0]):
         minsteps =  stat[0]
         bestmin = stat
+        torch.save(nn.TheModel,"bestavg_sofar.model")
         
     if(avgsteps == None or avgsteps > stat[1]):
         avgsteps =  stat[1]    
         bestavg = stat
+        torch.save(nn.TheModel,"bestmax_sofar.model")
     
+    nn.Train(fname)  
     print("progress so far ",(bestmin,bestavg))
     #solver=MasterMindSolver(allcombinations,Tree)
     #solver.Play([Color.RED,Color.RED,Color.RED,Color.RED])
