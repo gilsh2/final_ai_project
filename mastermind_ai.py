@@ -245,7 +245,7 @@ class NNStrategy:
             learning_rate = 0.0000001
             
             loss_fn = torch.nn.MSELoss(size_average=False)
-            for t in range(100):
+            for t in range(200):
                 # Make a prediction
                 Yhatt = self.TheModel(Xt)
                 
@@ -256,9 +256,7 @@ class NNStrategy:
                 if ((t % 10) == 0):     
                      print(loss.item()/len(Yt))
                 
-                if(loss.item()/len(Yt) < 0.65):
-                    break
-                
+              
                 # Clear out the "gradient", i.e. the old update amounts
                 self.TheModel.zero_grad()
                 # Fill out the new update amounts
@@ -310,28 +308,17 @@ class MasterMindSolver :
              
             Move = Move + 1    
             guess = Node.guess    
-            #if(file != None):
-            #    file.write("guess = " + str(guess) +"\n")
-                
-            #print("guess = ",guess,"secret =",secret)
-            #print("guess[0] = ",guess[0])
-            #print("secret[0] = ",secret[0])                          
+            
           
             self.__training.append(  (Node.next_guess_lens,Move))           
-            resp:Response =  Responder.GetResponse(guess,secret)
-            #print("resp = ",resp)
+            resp:Response =  Responder.GetResponse(guess,secret)            
             guesshistory[str(guess)] = resp    
             
-           # if(len(guesshistory) == 6):
-           #     print("length 6 :\n",guesshistory)
-           
-            
+                      
             if(resp == Response(Slots,0)):
                 break;
                 
-            
-            
-                
+                                
             Node = Node.next_guess[allresponses.index(resp)]       
         
         for i in range(len(self.__training) ):
@@ -342,10 +329,14 @@ class MasterMindSolver :
 
 
 class MasterMindSolverSimulator :   
-    def PersistTraining(trainings,file) :
-            for example in trainings :
-                 training = str(example[1]) + "," + ','.join(map(str, example[0]))
-                 file.write(training+"\n")       
+    def PersistTraining(trainings,file) :      
+        if(file == None):           
+            return
+                    
+        for example in trainings :            
+             training = str(example[1]) + "," + ','.join(map(str, example[0]))
+             file.write(training+"\n")    
+             file.flush()
                  
     def Simulate(Strategytree,iterations:int,filename:str) :     
         themax:int = None 
@@ -355,7 +346,7 @@ class MasterMindSolverSimulator :
         if(filename != None) :
             file = open(filename, "a")
             
-        
+       
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
@@ -366,7 +357,7 @@ class MasterMindSolverSimulator :
                  #    file.write("start game code = " + str(code) +"\n")
                  solution = solver.Play(code,file);
                  
-                 trainings = solver.GetTraining()
+                 trainings = solver.GetTraining()                
                  MasterMindSolverSimulator.PersistTraining(trainings,file)
                  #print(solution)
                  
@@ -391,26 +382,38 @@ class MasterMindSolverSimulator :
 #path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
 #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
 minsteps = None
-avgsteps = None        
-while(True):
-    nn = NNStrategy()    
-    nn.Train("tr7.txt")
-    #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations) 
-    
-    
-    for  i in range(1,2):
-        random.shuffle(allcombinations)
-        Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
-        #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
-        stat= MasterMindSolverSimulator.Simulate(Tree,1,"tr7.txt")
-        print (stat)
-        if(minsteps == None or minsteps > stat[0]):
-            minsteps =  stat[0]
-            
-        if(avgsteps == None or avgsteps > stat[1]):
-            avgsteps =  stat[1]    
+avgsteps = None    
+
+bestmin = None 
+bestavg = None  
+  
+nn = NNStrategy()    
+nn.TheModel = torch.load( "bestavg.model")
+nn.TheModel.eval()
+fname = "tr.txt"
+count = 0
+while(True):   
+    #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
+       
+    random.shuffle(allcombinations)
+    Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
+    #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
+    count = count +1
+  
+    stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
+    print (stat)
+    if(minsteps == None or minsteps > stat[0]):
+        minsteps =  stat[0]
+        bestmin = stat
+        torch.save(nn.TheModel,"bestavg_sofar.model")
         
-        print("progress so far ",(minsteps,avgsteps))
+    if(avgsteps == None or avgsteps > stat[1]):
+        avgsteps =  stat[1]    
+        bestavg = stat
+        torch.save(nn.TheModel,"bestmax_sofar.model")
+    
+    nn.Train(fname)  
+    print("progress so far ",(bestmin,bestavg))
     #solver=MasterMindSolver(allcombinations,Tree)
     #solver.Play([Color.RED,Color.RED,Color.RED,Color.RED])
 
