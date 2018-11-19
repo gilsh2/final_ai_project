@@ -385,7 +385,7 @@ avgsteps = None
 bestavg = None  
   
 nn = NNStrategy()    
-nn.TheModel = torch.load( "bestavg_sofar_398.model")
+nn.TheModel = torch.load( "bestavg_sofar_4398.model")
 nn.TheModel.eval()
 fname = "output.txt"
 count = 0
