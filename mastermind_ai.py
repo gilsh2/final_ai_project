@@ -139,7 +139,7 @@ class KnuthStrategy :
             
         return (best, minlen)   
     
-    def ChooseGuess(candidates,combinations) -> Code :
+    def ChooseGuess(self,candidates,combinations) -> Code :
         guessscore = KnuthStrategy.__BestKnuth(candidates ,candidates);
         guess = guessscore[0]
         guessscore_alt = KnuthStrategy.__BestKnuth(candidates ,combinations);
@@ -149,7 +149,7 @@ class KnuthStrategy :
         return guess
     
 class RamdomStrategy :
-    def ChooseGuess(candidates , combinations) -> Code :
+    def ChooseGuess(self,candidates , combinations) -> Code :
         epsilon = 0.0000000001
         if(random.random() < epsilon):
             return combinations[ random.randint(0,len(combinations)-1)]
@@ -381,39 +381,34 @@ class MasterMindSolverSimulator :
 #solver=MasterMindSolver(allcombinations,Tree)
 #path=solver.Play([Color.RED,Color.RED,Color.RED,Color.BLUE])
 #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
-minsteps = None
-avgsteps = None    
-
-bestmin = None 
+avgsteps = None 
 bestavg = None  
   
 nn = NNStrategy()    
-nn.TheModel = torch.load( "bestavg.model")
+nn.TheModel = torch.load( "1.model")
 nn.TheModel.eval()
-fname = "tr.txt"
+fname = "rrr.txt"
 count = 0
 while(True):   
     #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
        
-    random.shuffle(allcombinations)
+    #random.shuffle(allcombinations)
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
     #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
     count = count +1
   
     stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
     print (stat)
-    if(minsteps == None or minsteps > stat[0]):
-        minsteps =  stat[0]
-        bestmin = stat
-        torch.save(nn.TheModel,"bestavg_sofar.model")
+  
         
     if(avgsteps == None or avgsteps > stat[1]):
         avgsteps =  stat[1]    
         bestavg = stat
-        torch.save(nn.TheModel,"bestmax_sofar.model")
+        torch.save(nn.TheModel,"bestavg_sofar.model")
     
+   
+    print("progress so far ",(bestavg))
     nn.Train(fname)  
-    print("progress so far ",(bestmin,bestavg))
     #solver=MasterMindSolver(allcombinations,Tree)
     #solver.Play([Color.RED,Color.RED,Color.RED,Color.RED])
 
