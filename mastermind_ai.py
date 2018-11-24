@@ -385,14 +385,14 @@ avgsteps = None
 bestavg = None  
   
 nn = NNStrategy()    
-nn.TheModel = torch.load( "bestavg_sofar_4398.model")
+nn.TheModel = torch.load( "bestavg_sofar_4394.model")
 nn.TheModel.eval()
-fname = "output.txt"
+fname = "rrr2.txt"
 count = 0
 while(True):   
     #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
        
-    #random.shuffle(allcombinations)
+    random.shuffle(allcombinations)
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
     #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
     count = count +1
