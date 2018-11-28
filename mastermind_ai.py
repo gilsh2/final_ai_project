@@ -74,6 +74,15 @@ class StrategyNode :
         self.next_guess_lens = [int] * (len(allresponses) -1)
 
 
+class NodesContext :
+    __nodes:List[str]
+    def __init__(self,nodes):
+         self.__nodes = nodes
+    
+    def Next(self) :
+        ret = self.__nodes[0]
+        self.__nodes = self.__nodes[1:]
+        return ret
 
 class StrategyTreeBuilder():
     def Build(Strategy,candidates,combinations,level=0,pguess=None,pcandidates=None) -> StrategyNode:        
@@ -93,7 +102,58 @@ class StrategyTreeBuilder():
                
                 
         return   Node
+    
+    def __SaveInternal(Node:StrategyNode,file):  
+        nodestr = ""
+        if(Node.IsWinning):
+            nodestr = "[Winning]"
+        elif(Node.IsLossing):
+             nodestr = "[Lossing]"
+        else:
+             nodestr = str([Node.guess[i].value for i in range(len(Node.guess)) ])
+             
+        file.write(nodestr + "*")
+        if(Node.IsWinning or Node.IsLossing):
+            return
+        
+        for node  in Node.next_guess:            
+            StrategyTreeBuilder.__SaveInternal(node,file)
+    
+    def Save(Node:StrategyNode, filename:str):
+        file = open(filename, "w")
+        StrategyTreeBuilder.__SaveInternal(Node,file)
+        file.close()
+    
+    def __LoadInternal(nodescontext):
+            nodestr = nodescontext.Next()     
+                                  
+            if  "[Winning]"  in nodestr :
+                return StrategyNode(None,True,False)
+    
+            if  "[Lossing]"  in nodestr :
+                return StrategyNode(None,False,True)        
+            
+            
+            
+            nodestr=nodestr.replace("[","")
+            nodestr=nodestr.replace("]","")
+            guess = [ Color(int(i)) for i in nodestr.split(",")]
+            #print(guess)
+            Node = StrategyNode(guess,False,False)
+            for i in range(len(Node.next_guess)) :
+               Node.next_guess[i] = StrategyTreeBuilder.__LoadInternal(nodescontext)
                 
+            return Node            
+    
+ 
+    def Load(filename:str):
+            file = open(filename, "r")
+            l = file.read().split("*")
+            l =[ n for n in l if len(n) > 0]
+            tree = StrategyTreeBuilder.__LoadInternal(NodesContext(l))
+            file.close()
+            return tree  
+        
 
 class Responder : 
     
@@ -383,9 +443,13 @@ class MasterMindSolverSimulator :
 #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
 avgsteps = None 
 bestavg = None  
-  
+Tree = StrategyTreeBuilder.Build(KnuthStrategy(),allcombinations,allcombinations) 
+StrategyTreeBuilder.Save(Tree,"knuth_tree.txt")
+
+            
+
 nn = NNStrategy()    
-nn.TheModel = torch.load( "bestavg_sofar_4394.model")
+nn.TheModel = torch.load("bestavg_sofar_4394.model")
 nn.TheModel.eval()
 fname = "rrr2.txt"
 count = 0
@@ -393,22 +457,25 @@ while(True):
     #Tree = StrategyTreeBuilder.Build(KnuthStrategy,allcombinations,allcombinations)  
        
     random.shuffle(allcombinations)
-    Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
-    #Tree = StrategyTreeBuilder.Build(RamdomStrategy,allcombinations,allcombinations) 
+    #Tree = StrategyTreeBuilder.Build(KnuthStrategy(),allcombinations,allcombinations) 
+    Tree = StrategyTreeBuilder.Build(KnuthStrategy(),allcombinations,allcombinations) 
     count = count +1
   
     stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
     print (stat)
+   
+    
   
-        
-    if(avgsteps == None or avgsteps > stat[1]):
+    if( (avgsteps == None or avgsteps > stat[1]) and  stat[0] == 5  ):
         avgsteps =  stat[1]    
         bestavg = stat
         torch.save(nn.TheModel,"bestavg_sofar.model")
+        StrategyTreeBuilder.Save(Tree,"knuth_tree_optimized.txt")
     
    
+    
     print("progress so far ",(bestavg))
-    nn.Train(fname)  
+    #nn.Train(fname)  
     #solver=MasterMindSolver(allcombinations,Tree)
     #solver.Play([Color.RED,Color.RED,Color.RED,Color.RED])
 
