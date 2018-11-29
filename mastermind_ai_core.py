@@ -24,7 +24,8 @@ class Color(Enum):
     
 Code  = List[Color]
 Slots:int = 4 
-      
+
+#all possible 1296 combinations       
 def GenAllCombinations():
     combinations = []
     for col1  in Color:
@@ -36,13 +37,13 @@ def GenAllCombinations():
     return combinations
 
 
-
+#response class
 class Response(NamedTuple):
     ExactMatches: int
     NonExactMatches: int
 
       
-
+#all possible 15 responses 
 def Getresponses():
     responses = []
     for i in range(Slots+1) :
@@ -56,7 +57,7 @@ def Getresponses():
 allcombinations = GenAllCombinations()
 allresponses = Getresponses()
 
-    
+#tree node    
 class StrategyNode :
     guess: Code
     IsWinning : bool
@@ -71,7 +72,7 @@ class StrategyNode :
         self.next_guess = [None] * (len(allresponses) )
         self.next_guess_lens = [int] * (len(allresponses) -1)
 
-
+#helper class for loading the tree from a file
 class NodesContext :
     __nodes:List[str]
     def __init__(self,nodes):
@@ -82,6 +83,7 @@ class NodesContext :
         self.__nodes = self.__nodes[1:]
         return ret
 
+#build a full game strategy tree
 class StrategyTreeBuilder():
     def Build(Strategy,candidates,combinations,level=0,pguess=None,pcandidates=None) -> StrategyNode:        
         
@@ -116,7 +118,8 @@ class StrategyTreeBuilder():
         
         for node  in Node.next_guess:            
             StrategyTreeBuilder.__SaveInternal(node,file)
-    
+            
+    #save the  tree to a file 
     def Save(Node:StrategyNode, filename:str):
         file = open(filename, "w")
         StrategyTreeBuilder.__SaveInternal(Node,file)
@@ -143,7 +146,7 @@ class StrategyTreeBuilder():
                 
             return Node            
     
- 
+    #load the tree from a file 
     def Load(filename:str):
             file = open(filename, "r")
             l = file.read().split("*")
@@ -152,7 +155,7 @@ class StrategyTreeBuilder():
             file.close()
             return tree  
         
-
+#calculate response fora guess
 class Responder : 
     
     def GetExactMatches(secret, guess):
@@ -163,7 +166,7 @@ class Responder :
         first = Responder.GetExactMatches(secret, guess)
         return first, sum([min(secret.count(j), guess.count(j)) for j in Color]) - first    
             
-  
+#util  
 class Util :    
      def IsConsistent(guesscode:Code, response:Response,  code:Code)  -> bool :   
          if(response.ExactMatches != Responder.GetExactMatches(code, guesscode)):
@@ -173,7 +176,7 @@ class Util :
     
             
     
-        
+# Knuth (avoiding worst case)  strategy for choosing a guess            
 class KnuthStrategy :
     def __guessScoreKnuth (guess:Code, candidates):        
         maxlen = None     
@@ -205,7 +208,9 @@ class KnuthStrategy :
             guess = guessscore_alt[0]
 
         return guess
-    
+
+         
+# random  strategy for choosing a guess    
 class RamdomStrategy :
     def ChooseGuess(self,candidates , combinations) -> Code :
         epsilon = 0.0000000001
@@ -215,7 +220,7 @@ class RamdomStrategy :
         slot = random.randint(0,len(candidates)-1)
         return candidates[slot]        
          
-
+# NN strategy for choosing a guess
 class NNStrategy:
      TheModel:torch.nn.modules.container.Sequential
      
@@ -270,11 +275,10 @@ class NNStrategy:
         guess = self.BestNNStrategy(candidates,candidates)
         return guess[0]
     
-    
+    #train the nn
      def Train(self, filename:str) :
             data = genfromtxt(filename, delimiter=',')
-            
-           
+                       
             #print(data)
             #random.shuffle(data)
             #print(data.shape)             
@@ -335,7 +339,7 @@ class NNStrategy:
             print(loss_fn(Yt_validation,self.TheModel(Xt_validation)))                 
                     
     
-
+#play a game and capture results 
 class MasterMindSolver :    
     __candidates:list
     __Strategy = None
@@ -350,7 +354,7 @@ class MasterMindSolver :
         return self.__training
     
     
-    
+    #play a single game
     def Play(self,secret:Code,file=None) -> Dict[Code, Response]:
         guesshistory:Dict[str, Response] = {}
         Node = self.__Strategytree
@@ -385,7 +389,7 @@ class MasterMindSolver :
        
         return guesshistory
 
-
+# Simulates  games against all codes given a strategy tree
 class MasterMindSolverSimulator :   
     def PersistTraining(trainings,file) :      
         if(file == None):           
@@ -404,22 +408,14 @@ class MasterMindSolverSimulator :
         if(filename != None) :
             file = open(filename, "a")
             
-       
+        # run against all codes 
         allcodes = GenAllCombinations()          
         for  i in range(iterations) :
              for code  in allcodes :             
-                 solver=MasterMindSolver(allcodes,Strategytree)
-                 #print("code=",code)
-                 
-                 #if(file != None):                       
-                 #    file.write("start game code = " + str(code) +"\n")
-                 solution = solver.Play(code,file);
-                 
+                 solver=MasterMindSolver(allcodes,Strategytree)                
+                 solution = solver.Play(code,file);                 
                  trainings = solver.GetTraining()                
-                 MasterMindSolverSimulator.PersistTraining(trainings,file)
-                 #print(solution)
-                 
-                 #print(solution)
+                 MasterMindSolverSimulator.PersistTraining(trainings,file)                 
                  count = count+1
                  thesum = thesum + len(solution);
                  if( themax == None or len(solution) > themax   ) :
@@ -427,7 +423,8 @@ class MasterMindSolverSimulator :
         
         if(file != None):                
             file.close()
-            
+       
+        #return stats  
         return  (themax, thesum/count)  
 
     
