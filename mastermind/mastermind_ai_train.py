@@ -20,6 +20,9 @@ nn = NNStrategy()
 
 #train in a loop 
 count = 0
+statfname = "stat.txt"
+statfile=open(statfname,"w") 
+
 while(True):
     count = count+1
     nn.Train(fname)
@@ -43,6 +46,7 @@ while(True):
        Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
        stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
                     
-                
+    statfile.write(str(count) + "," + str(avgsteps)  )      
+    statfile.flush()    
     print("progress so far ",(bestavg))
     
