@@ -1,4 +1,4 @@
-import mastermind_ai_core 
+from mastermind.mastermind_ai_core import *
 
 avgsteps =None
 bestavg =None
