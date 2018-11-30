@@ -15,7 +15,8 @@ for i in range(1,10):
 
 #start nn strategy 
 nn = NNStrategy()    
-
+nn.TheModel = torch.load("bestavg_sofar.model")
+nn.TheModel.eval()
 
 #train in a loop 
 count = 0
@@ -35,7 +36,7 @@ while(True):
 
     #every 10 cycles start fresh with the best model so far    
     print("interation = ",count)
-    if(count % 10 == 0):
+    if(count % 100 == 0):
        file=open(fname,"w") 
        nn.TheModel = torch.load("bestavg_sofar.model")
        nn.TheModel.eval()

@@ -280,7 +280,7 @@ class NNStrategy:
             data = genfromtxt(filename, delimiter=',')
                        
             #print(data)
-            #random.shuffle(data)
+            random.shuffle(data)
             #print(data.shape)             
             print(data.shape)            
             validation_split = 0.3 # Take 30% for validation
@@ -307,7 +307,7 @@ class NNStrategy:
             learning_rate = 0.0000001
             
             loss_fn = torch.nn.MSELoss(size_average=False)
-            for t in range(200):
+            for t in range(500):
                 # Make a prediction
                 Yhatt = self.TheModel(Xt)
                 
