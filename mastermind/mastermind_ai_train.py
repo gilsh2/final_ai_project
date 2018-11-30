@@ -15,8 +15,8 @@ for i in range(1,10):
 
 #start nn strategy 
 nn = NNStrategy()    
-nn.TheModel = torch.load("bestavg_sofar.model")
-nn.TheModel.eval()
+#nn.TheModel = torch.load("bestavg_sofar.model")
+#nn.TheModel.eval()
 
 #train in a loop 
 count = 0
