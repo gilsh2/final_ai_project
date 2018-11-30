@@ -1,4 +1,4 @@
-import mastermind_ai_core 
+from mastermind.mastermind_ai_core import *
 
 print("original knuth tree")
 Tree=StrategyTreeBuilder.Load("knuth_tree.txt")
