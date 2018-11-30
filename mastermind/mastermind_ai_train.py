@@ -15,8 +15,8 @@ for i in range(1,10):
 
 #start nn strategy 
 nn = NNStrategy()    
-#nn.TheModel = torch.load("bestavg_sofar.model")
-#nn.TheModel.eval()
+nn.TheModel = torch.load("bestavg_sofar.model")
+nn.TheModel.eval()
 
 #train in a loop 
 count = 0
@@ -46,7 +46,7 @@ while(True):
        Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
        stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
                     
-    statfile.write(str(count) + "," + str(avgsteps)  )      
+    statfile.write(str(count) + "," + str(avgsteps) + "\n" )      
     statfile.flush()    
     print("progress so far ",(bestavg))
     
