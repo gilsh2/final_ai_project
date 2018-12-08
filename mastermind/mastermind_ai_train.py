@@ -8,10 +8,7 @@ fname = "training.txt"
 file=open(fname,"w") 
 
 #get some random tarining examples
-for i in range(1,10):
-    Tree = StrategyTreeBuilder.Build(RamdomStrategy(),allcombinations,allcombinations) 
-    stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
-    print (stat)
+
 
 #start nn strategy 
 nn = NNStrategy()    
@@ -19,18 +16,17 @@ nn.TheModel = torch.load("bestavg_sofar.model")
 nn.TheModel.eval()
 
 #train in a loop 
-count = 0
+count = 666
 statfname = "stat.txt"
-statfile=open(statfname,"w") 
+statfile = open(statfname ,"w") 
 
 while(True):
-    count = count+1
-    nn.Train(fname)
+    count = count+1    
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
     stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
     print (stat)
     random.shuffle(allcombinations)
-  
+      
     #save the best so fat model
     if(avgsteps == None or avgsteps > stat[1]) :
         avgsteps =  stat[1]    
@@ -45,8 +41,10 @@ while(True):
        nn.TheModel.eval()
        Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
        stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
-                    
+     
+                  
     statfile.write(str(count) + "," + str(avgsteps) + "\n" )      
     statfile.flush()    
     print("progress so far ",(bestavg))
+    nn.Train(fname) 
     
