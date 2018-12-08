@@ -37,7 +37,7 @@ while(True):
         bestavg = stat
         torch.save(nn.TheModel,"bestavg_sofar.model")
 
-    #every 10 cycles start fresh with the best model so far    
+    #every 100 cycles start fresh with the best model so far    
     print("interation = ",count)
     if(count % 100 == 0):
        file=open(fname,"w") 
