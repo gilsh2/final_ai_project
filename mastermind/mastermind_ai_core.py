@@ -21,6 +21,7 @@ class Color(Enum):
     YELLOW = 3 
     BLUE = 4
     VIOLET =  5
+  
     
 Code  = List[Color]
 Slots:int = 4 
@@ -221,6 +222,7 @@ class RamdomStrategy :
         return candidates[slot]        
          
 # NN strategy for choosing a guess
+Featurescache =   {}  
 class NNStrategy:
      TheModel:torch.nn.modules.container.Sequential
      
@@ -241,6 +243,10 @@ class NNStrategy:
         )                       
              
      def Getfeature (guess:Code, candidates):
+         key = str(candidates) + str(guess)
+         if ( key in Featurescache):            
+             return Featurescache.get(key)
+         
          features = [int] * (len(allresponses) -1)  
         
          for i  in range(len(allresponses)):    
@@ -250,6 +256,7 @@ class NNStrategy:
             newcandidates = [candidate for candidate in candidates if Util.IsConsistent(guess, allresponses[i],candidate)] 
             features[i] = len(newcandidates)      
          
+         Featurescache[key] =   features
          return features
     
      def guessScore (self,guess:Code, candidates):        

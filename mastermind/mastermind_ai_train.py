@@ -28,10 +28,13 @@ statfile=open(statfname,"w")
 while(True):
     count = count+1
     nn.Train(fname)
+    #build NN play tree  
     Tree = StrategyTreeBuilder.Build(nn,allcombinations,allcombinations) 
+    
+    #Simulates games against all codes and capture results
     stat= MasterMindSolverSimulator.Simulate(Tree,1,fname)
     print (stat)
-    random.shuffle(allcombinations)
+   # random.shuffle(allcombinations)
   
     #save the best so fat model
     if(avgsteps == None or avgsteps > stat[1]) :
@@ -40,7 +43,7 @@ while(True):
         torch.save(nn.TheModel,"bestavg_sofar.model")
 
     #every 100 cycles start fresh with the best model so far    
-    print("interation = ",count)
+    print("iteration = ",count)
     if(count % 100 == 0):
        file=open(fname,"w") 
        nn.TheModel = torch.load("bestavg_sofar.model")
